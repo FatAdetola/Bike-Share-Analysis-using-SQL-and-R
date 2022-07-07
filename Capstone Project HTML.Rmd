@@ -1,6 +1,11 @@
 ---
 title: "Cyclist Bike-Share Analysis Case Study with SQL and R"
 author: "Fatimah Adeyekun"
+knit: (function(input_file, encoding) {
+    out_dir <- 'docs';
+    rmarkdown::render(input_file,
+      encoding=encoding,
+      output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 date: '2022-06-02'
 output: html_document
 ---
