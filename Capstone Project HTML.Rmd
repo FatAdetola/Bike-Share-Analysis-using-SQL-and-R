@@ -1,0 +1,341 @@
+---
+title: "Cyclist Bike-Share Analysis Case Study with SQL and R"
+author: "Fatimah Adeyekun"
+date: '2022-06-02'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+#### About the Company- Cyclist
+
+Cyclist launched a successful bike-sharing offering in 2016 and has grown over the years, with a fleet of 5824 bicycles. Their strategy before now, relied on creating awareness and appealing to a wide variety of customers. Customers who purchase a single-ride or full-day pass are called casual riders while those who purchase annual memberships are called members.
+
+The financial analysts realized that the annual members are much more profitable than the casual riders. Therefore, Moreno, the marketing manager wants to design strategies which would aim at converting the casual riders to annual members.
+
+
+#### Business Task
+
+Identify the behavioral trends of casual riders against annual members and provide recommendations on how casual members can be converted to annual members.
+
+
+#### Questions to guide the analysis
+
+* How do annual members and casual members use the company's bikes differently?
+* Is there a pattern in the days of the week the casual riders and annual members ride?
+* Does the length of the ride vary significantly for both categories of customers?
+
+
+#### Preparing and processing the data
+
+* The most recent 12 months data was used and the files can be found [here](https://divvy-tripdata.s3.amazonaws.com/index.html)
+
+* Motivate International Inc made the data available under [this license](https://www.divvybikes.com/data-license-agreement)
+
+* SQL(Postgress) was used to combine the data into quarters with the exception of the 2022 data set that has 4 months raw data.
+Some data manipulation was also done with some SQL functions to get the duration of the trip, the day of the week, as well as the month the trip was taken.
+
+* The query below was run against each table in the database:
+
+ select ride_id,
+	   rideable_type,
+	   started_at,
+	   ended_at,
+	   ended_at-started_at as duration_of_ride,
+	   extract(year from (started_at)) as year_of_ride,
+	   to_char(started_at, 'Month') as month,
+	   to_char(started_at, 'Day') as day_of_the_week,
+	   start_station_name,
+	   start_station_id,
+	   end_station_name,
+	   end_station_id,
+	   start_lat,
+	   start_lng,
+	   end_lat,
+	   end_lng,
+	   member_casual
+from cyclist_bike_share_2022_q1
+
+#### Installing required packages
+
+* tidyverse for data import and wrangling
+* readr to read the csv file
+* dplyr to manipulate data
+* janitor to clean our dataset
+* lubridate for date functions
+* ggplot2 for data visualization
+
+
+#### Loading the libraries of the installed packages...
+
+```{r}
+
+library(tidyverse)
+library(janitor)
+library(readr)
+library(vroom)
+library(janitor)
+library(dplyr)
+library(ggplot2)
+```
+
+
+```{r}
+library(tidyverse)
+library(readr)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(vroom)
+```
+```{r}
+q1_2021 <- vroom("q1_2021/bike_data_2021_q1.csv")
+q2_2021 <- vroom("q2_2021/bike_data_2021_q2.csv")
+q4_2021 <- vroom("q4_2021/bike_data_2021_q4.csv")
+q1_2022 <- vroom("q1_2022/bike_data_2022_q1.csv")
+q3_2021_July <- vroom("q3_2021/bike_data_2021_q3_July.csv")
+q3_2021_Aug_Sep <- vroom("q3_2021/bike_data_2021_q3_Aug_Sep.csv")
+```
+* Checking the data that has been uploaded
+
+Viewing and familiarizing with the data
+```{r}
+colnames(q1_2022)
+colnames(q1_2021)
+colnames(q2_2021)
+colnames(q4_2021)
+colnames(q3_2021_July)
+colnames(q3_2021_Aug_Sep)
+```
+* Before binding all rows into one data frame, we want to be sure the structure of our individual data sets are the same
+
+```{r}
+str(q1_2022)
+str(q1_2021)
+str(q2_2021)
+str(q4_2021)
+str(q3_2021_July)
+str(q3_2021_Aug_Sep)
+```
+```{r}
+q1_2022 <- mutate(q1_2022,duration_of_ride = as.character(duration_of_ride))
+q1_2021 <- mutate(q1_2021,duration_of_ride = as.character(duration_of_ride))
+q2_2021 <- mutate(q2_2021,duration_of_ride = as.character(duration_of_ride))
+q4_2021 <- mutate(q4_2021,duration_of_ride = as.character(duration_of_ride))
+q3_2021_July <- mutate(q3_2021_July,duration_of_ride = as.character(duration_of_ride))
+q3_2021_Aug_Sep <- mutate(q3_2021_Aug_Sep,duration_of_ride = as.character(duration_of_ride))
+```
+
+
+```{r}
+## it was observed that the end_lat and end_lng columns were stored as both characters and double data types. These columns are being converted to double so that the files can be properly merged into one and proper analysis can be carried out.
+q1_2022 <- mutate(q1_2022,end_lat = as.double(end_lat))
+q1_2021 <- mutate(q1_2021,end_lat = as.double(end_lat))
+q2_2021 <- mutate(q2_2021,end_lat = as.double(end_lat))
+q4_2021 <- mutate(q4_2021,end_lat = as.double(end_lat))
+q3_2021_July <- mutate(q3_2021_July,end_lat = as.double(end_lat))
+q3_2021_Aug_Sep <- mutate(q3_2021_Aug_Sep,end_lat = as.double(end_lat))
+```
+```{r}
+q1_2022 <- mutate(q1_2022,end_lng = as.double(end_lng))
+q1_2021 <- mutate(q1_2021,end_lng = as.double(end_lng))
+q2_2021 <- mutate(q2_2021,end_lng = as.double(end_lng))
+q4_2021 <- mutate(q4_2021,end_lng = as.double(end_lng))
+q3_2021_July <- mutate(q3_2021_July,end_lng = as.double(end_lng))
+q3_2021_Aug_Sep <- mutate(q3_2021_Aug_Sep,end_lng = as.double(end_lng))
+```
+
+
+```{r}
+## final checking of the structure of our individual files before combining them into one file
+str(q1_2022)
+str(q1_2021)
+str(q2_2021)
+str(q4_2021)
+str(q3_2021_July)
+str(q3_2021_Aug_Sep)
+
+```
+
+*The names of the columns and structure are the same across board so we can combine the data frames into one single file for aggregation purposes as well as other analysis.
+
+```{r}
+all_trips <- bind_rows(q1_2022, q1_2021, q2_2021, q3_2021_July,q3_2021_Aug_Sep, q4_2021)
+
+```
+
+#### Inspecting and viewing the consolidated data...
+```{r}
+glimpse(all_trips) ## to view some rows
+head(all_trips) ## to view the first 6 rows of the data
+colnames(all_trips)## to view the names of the columns
+nrow(all_trips) ##to know the number of rows contained in our data
+str(all_trips) # to view the structure of the data
+summary(all_trips) #statistical summary of the data
+```
+##### Data Cleaning
+
+* we will use the clean_names function to clean the names and make sure they are consistent
+
+* we will also be performing some calculations for analysis later
+
+```{r}
+clean_names(all_trips)
+```
+```{r}
+# to get the ride length for each trip
+all_trips$ride_length <- difftime(all_trips$ended_at, all_trips$started_at)
+
+# converting the ride_length field to a numeric data type so that we can perform some calculations..
+
+all_trips$ride_length <- as.numeric(as.character(all_trips$ride_length))
+is.numeric(all_trips$ride_length)
+
+all_trips$year_of_ride <- as.integer(all_trips$year_of_ride)
+is.integer(all_trips$year_of_ride)
+
+  
+```
+
+#### Checking the names of columns
+```{r}
+colnames(all_trips)
+
+```
+
+
+
+##### Checking for nulls in our data
+```{r}
+is.null(all_trips$ride_length)
+is.null(all_trips$member_casual)
+is.null(all_trips$start_station_name)
+is.null(all_trips$end_station_name)
+
+```
+####Conducting Descriptive analysis
+
+
+####checking the average ride time for each category of member by the day of the week(1.e grouping by the member type and the day of the week)
+
+
+* the statistical results show that the casual members ride for a longer time compared to the subscription members.
+
+* the average ride length is more as well as the casual members having the highest ride lengths compared to the other category
+
+##ride_length is in seconds. For easy readability, it is converted to the hms format using the hms library
+```{r}
+library(hms)
+```
+
+#### Analysis by day of the week month and calculation of the mean, median and mode of these rides
+
+```{r}
+
+all_trips %>% 
+  group_by(day_of_the_week, member_casual) %>% 
+  summarise(average_duration = as_hms(mean(ride_length))) %>% 
+  arrange(desc(average_duration)) %>% 
+  ggplot(all_trips,mapping = aes(x= day_of_the_week, y = average_duration, fill = member_casual)) + geom_col(position = "dodge") +
+  labs(title =  "Average Duration per Day of the Week", caption = "Data viz shows the average duration of each type of member per day of the week", y = "Average Duration", x = "Day of the Week")
+
+
+all_trips %>% 
+  group_by(member_casual, day_of_the_week) %>% 
+  summarise(max_ride_length = as_hms(max(ride_length))) %>% 
+  arrange(desc(max_ride_length)) %>% 
+  ggplot(all_trips,mapping = aes(x= day_of_the_week, y = max_ride_length, fill = member_casual)) + geom_col(position = "dodge") +
+  labs(title =  "Max Ride Length per Day of the Week", caption = "Data viz shows the max value of the ride length of each type of member per day of the week", y = "Max Ride Length", x = "Day of the Week")
+
+
+all_trips %>% 
+  group_by(member_casual, day_of_the_week) %>% 
+  summarise(median_ride_length = as_hms(median(ride_length))) %>% 
+  arrange(desc(median_ride_length)) %>% 
+  ggplot(all_trips,mapping = aes(x= day_of_the_week, y = median_ride_length, fill = member_casual)) + geom_col(position = "dodge") +
+  labs(title =  "Mid Ride Length per Day of the Week", caption = "Data viz shows the mid value of the ride length of each type of member per day of the week", y = "Median Ride Length", x = "Day of the Week")
+
+  
+```
+
+##### Checking thenumber of rides against the months
+```{r}
+## To know the number of ride
+all_trips %>% 
+ group_by(month, year_of_ride, member_casual) %>% 
+ summarise(number_of_rides = n()) %>%
+  filter (member_casual == "casual") %>% 
+  arrange(month, desc(number_of_rides)) %>% 
+  ggplot(aes(x = number_of_rides, y = month , fill = year_of_ride)) +
+  geom_col(position = "dodge") +
+  labs(title =  "Month vs No of Rides", caption = "Data viz shows number of rides observed in each month for the year 2021 and first 4 months of 2022", y = "Month", x = "No of Rides")
+
+
+
+all_trips %>% 
+  distinct(year_of_ride)
+```
+#### Analysis by the type pf bike riden by customers
+
+```{r}
+all_trips %>% 
+ group_by(rideable_type, member_casual) %>% 
+ summarise(number_of_rides = n()) %>%
+  arrange(desc(number_of_rides)) %>% 
+  ggplot(aes(x = number_of_rides, y = rideable_type , fill = member_casual)) +
+  geom_col(position = "dodge") +
+  (labs (title = "Type of Bike vs No of Rides", x = "No of Rides", y = "Type of Bike"))
+```
+
+##### Analysis by Location
+
+```{r}
+## TO get the top most common start stations
+
+all_trips %>% 
+ group_by(start_station_name) %>% 
+ summarise(count_of_start_station = n()) %>%
+  filter(start_station_name != "NULL") %>% 
+  arrange(desc(count_of_start_station)) %>% 
+  head(10)
+
+
+## To get the top most common end stations
+
+all_trips %>% 
+ group_by(end_station_name) %>% 
+ summarise(count_of_end_station = n()) %>%
+  filter(end_station_name != "NULL") %>% 
+  arrange(desc(count_of_end_station)) %>% 
+  head(10)
+
+
+```
+```{r}
+## To get the 5 most common routes ( start station to end station)
+
+all_trips %>%
+  mutate(trip_summary = paste(start_station_name, sep = " to ", end_station_name)) %>% 
+  group_by(trip_summary) %>% 
+  summarise(count_of_trip_summary = n()) %>% 
+  filter(trip_summary!= "NULL to NULL") %>% 
+  arrange(desc(count_of_trip_summary)) %>% 
+  head(5)
+  
+```
+
+##### Summary and Recommendations
+
+* Both group of users ride mostly during weekends - Saturdays and Sundays, as well as Fridays and Mondays. Since casual riders ride often on weekends. A campaign that suggests those that come in repetitively during the weekends would have a significant reduction should they subscribe annually. This could even be a separate package that could be upgraded as the customer deems fit.
+
+* Also, generally speaking, casual riders ride more often than the members. A monthly or quarterly subscription plan can be introduced, with some extra incentives so that the casual customers can be converted to members.
+
+* The number of rides during the summer months (June, July, August, September) is significantly higher than the other months since this is when people mostly do their outdoor activities and it is a warmer period than the other months. A campaign can also be introduced; probably a bi- annual package. This could encourage people to pay to become bi-annual members especially during the summer months. It could also be stated that cancellation can occur at anytime to put them at ease.
+
+* Both categories of customers use the electric bikes and the casual bikes more frequently. However, the docked bikes are rarely used. More investigation might need to be carried out to understand why this is so. However, since the casual members prefer the first two bikes mentioned, a separate package can also be introduced that would discourage the one-off uses of these bikes.
+
+* Streeter Dr & Grand Ave	90477 is the most common route the customers take when they go on their rides. This location can be leveraged by introducing some sort of competition every month with a grand prize given to the winner and this would only be exclusive to those with annual membership. This can foster unity, networking, as well as more profit for the company if this campaign is done properly.
+
+* Further investigation may need to be carried out to get more insights into the data. For instance, knowing the time of day can help to gain some insights into what time of the day the customers ride most.  
+
